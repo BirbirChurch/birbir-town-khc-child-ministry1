@@ -31,7 +31,13 @@ import {
   WeeklyAttendanceStatus,
   YearWeeklyAttendanceMap
 } from '../types';
-import { downloadCSV, downloadXLSX, readCSVFile, parseCleanStudentLine } from '../utils/csv';
+import {
+  downloadCSV,
+  downloadXLSX,
+  readCSVFile,
+  readExcelOrCSVWorkbook,
+  parseCleanStudentLine
+} from '../utils/csv';
 
 interface AttendanceTabProps {
   currentYear: string;
@@ -568,80 +574,107 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
     downloadCSV(csv, `የሰንበት_ትምህርት_${selectedClass}_የ40_ሳምንት_አቴንዳንስ_${currentYear}.csv`);
   };
 
-  // Import 40-Week Roster from CSV
+  // Import 40-Week Roster / Excel file
   const handleImport40WeeksCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const rows = await readCSVFile(file);
-      if (rows.length <= 1) {
-        alert('የተመረጠው ፋይል ባዶ ወይም ትክክለኛ የCSV/ኤክሴል ፎርማት አይደለም!');
+      const workbookResult = await readExcelOrCSVWorkbook(file);
+      if (!workbookResult.sheets || workbookResult.sheets.length === 0) {
+        alert('የተመረጠው ፋይል ባዶ ወይም ትክክለኛ የኤክሴል/CSV ፎርማት አይደለም!');
+        e.target.value = '';
         return;
       }
 
-      const header = rows[0];
-      let nameColIdx = 1;
-      header.forEach((h, idx) => {
-        if (h.includes('ስም') || h.toLowerCase().includes('name')) nameColIdx = idx;
-      });
+      let newStudentsCount = 0;
+      let updatedAttendanceCount = 0;
 
-      const weekColMap: { [week: number]: number } = {};
-      header.forEach((h, colIdx) => {
-        const match = h.match(/(?:ሳምንት|week)\s*(\d+)/i);
-        if (match && match[1]) {
-          const wNum = parseInt(match[1], 10);
-          if (wNum >= 1 && wNum <= 40) {
-            weekColMap[wNum] = colIdx;
+      for (const sheet of workbookResult.sheets) {
+        const rows = sheet.rows;
+        if (!rows || rows.length <= 1) continue;
+
+        const header = rows[0];
+        let nameColIdx = 1;
+        let ageColIdx = -1;
+        let genderColIdx = -1;
+
+        header.forEach((h, idx) => {
+          const hLower = h.toLowerCase();
+          if (h.includes('ስም') || hLower.includes('name')) nameColIdx = idx;
+          if (h.includes('ዕድሜ') || h.includes('እድሜ') || hLower.includes('age')) ageColIdx = idx;
+          if (h.includes('ፆታ') || h.includes('ጾታ') || hLower.includes('gender') || hLower.includes('sex')) genderColIdx = idx;
+        });
+
+        const weekColMap: { [week: number]: number } = {};
+        header.forEach((h, colIdx) => {
+          const match = h.match(/(?:ሳምንት|week)\s*(\d+)/i);
+          if (match && match[1]) {
+            const wNum = parseInt(match[1], 10);
+            if (wNum >= 1 && wNum <= 40) {
+              weekColMap[wNum] = colIdx;
+            }
           }
-        }
-      });
+        });
 
-      let updatedCount = 0;
-      for (let r = 1; r < rows.length; r++) {
-        const row = rows[r];
-        if (!row || row.length <= nameColIdx) continue;
-        const studentNameFromFile = row[nameColIdx]?.trim();
-        if (!studentNameFromFile) continue;
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (!row || row.length <= nameColIdx) continue;
+          const rawName = row[nameColIdx]?.trim();
+          if (!rawName) continue;
 
-        let matchedStudent = classStudents.find(
-          (s) => s.name.trim().toLowerCase() === studentNameFromFile.toLowerCase()
-        );
+          const rawGender = genderColIdx >= 0 ? row[genderColIdx]?.trim() : '';
+          const { name: cleanName, gender: parsedGender } = parseCleanStudentLine(
+            rawName,
+            rawGender === 'ሴ' ? 'ሴ' : rawGender === 'ወ' ? 'ወ' : ''
+          );
 
-        // If student is in file but not yet in class, register them!
-        if (!matchedStudent && onAddStudentToClass) {
-          onAddStudentToClass(selectedClass, {
-            name: studentNameFromFile,
-            age: '12',
-            gender: 'ወ',
-            m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0
-          });
-        }
+          if (!cleanName) continue;
 
-        if (matchedStudent) {
-          Object.entries(weekColMap).forEach(([wStr, colIdx]) => {
-            const w = parseInt(wStr, 10);
-            const rawVal = row[colIdx]?.trim().toUpperCase();
-            let statusVal: WeeklyAttendanceStatus = '';
-            if (rawVal === 'ተ' || rawVal === 'P' || rawVal === 'PRESENT' || rawVal === '1') {
-              statusVal = 'P';
-            } else if (rawVal === 'ቀ' || rawVal === 'A' || rawVal === 'ABSENT' || rawVal === '0') {
-              statusVal = 'A';
-            } else if (rawVal === 'ፈ' || rawVal === 'E' || rawVal === 'PERMISSION' || rawVal === 'EXCUSED') {
-              statusVal = 'E';
-            }
+          const studentAge = ageColIdx >= 0 && row[ageColIdx]?.trim() ? row[ageColIdx].trim() : '12';
 
-            if (statusVal) {
-              onUpdateStudentWeeklyAttendance(currentYear, selectedClass, matchedStudent.id, w, statusVal);
-              updatedCount++;
-            }
-          });
+          let matchedStudent = classStudents.find(
+            (s) => s.name.trim().toLowerCase() === cleanName.toLowerCase()
+          );
+
+          // If student is in file but not yet in class, register them into the class roster!
+          if (!matchedStudent && onAddStudentToClass) {
+            onAddStudentToClass(selectedClass, {
+              name: cleanName,
+              age: studentAge,
+              gender: parsedGender,
+              m1: 0, m2: 0, m3: 0, m4: 0, m5: 0, m6: 0, m7: 0
+            });
+            newStudentsCount++;
+          }
+
+          if (matchedStudent) {
+            Object.entries(weekColMap).forEach(([wStr, colIdx]) => {
+              const w = parseInt(wStr, 10);
+              const rawVal = row[colIdx]?.trim().toUpperCase();
+              let statusVal: WeeklyAttendanceStatus = '';
+              if (rawVal === 'ተ' || rawVal === 'P' || rawVal === 'PRESENT' || rawVal === '1') {
+                statusVal = 'P';
+              } else if (rawVal === 'ቀ' || rawVal === 'A' || rawVal === 'ABSENT' || rawVal === '0') {
+                statusVal = 'A';
+              } else if (rawVal === 'ፈ' || rawVal === 'E' || rawVal === 'PERMISSION' || rawVal === 'EXCUSED') {
+                statusVal = 'E';
+              }
+
+              if (statusVal) {
+                onUpdateStudentWeeklyAttendance(currentYear, selectedClass, matchedStudent.id, w, statusVal);
+                updatedAttendanceCount++;
+              }
+            });
+          }
         }
       }
 
-      alert(`✓ የ40 ሳምንት አቴንዳንስ መረጃ በተሳካ ሁኔታ ተጭኗል! (ጠቅላላ የተሻሻሉ ምዝገባዎች፦ ${updatedCount})`);
+      alert(
+        `✓ የኤክሴል መረጃ በተሳካ ሁኔታ ተጭኗል!\n• ወደ ክፍል ዝርዝር የተመዘገቡ ተማሪዎች፦ ${newStudentsCount}\n• የተሻሻሉ የአቴንዳንስ ምዝገባዎች፦ ${updatedAttendanceCount}\n(ማስታወሻ፦ የተመዘገቡት ተማሪዎች በሁለቱም በአተንዳንስና በውጤት መሙያው ገጽ ላይ ይገኛሉ)`
+      );
     } catch {
-      alert('የCSV ፋይሉን ማንበብ አልተሳካም። እባክዎን ትክክለኛነቱን ያረጋግጡ።');
+      alert('የኤክሴል/CSV ፋይሉን ማንበብ አልተሳካም። እባክዎን ትክክለኛነቱን ያረጋግጡ።');
     }
     e.target.value = '';
   };
