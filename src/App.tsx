@@ -760,7 +760,7 @@ export default function App() {
   const visibleTabs = tabs.filter((t) => currentUserRole && t.roles.includes(currentUserRole));
 
   return (
-    <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-100/70 text-slate-900 flex flex-col font-sans print:min-h-0 print:bg-white print:block">
       <Header
         currentYear={currentYear}
         years={appData?.years || ['2019']}
@@ -809,7 +809,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:max-w-none print:w-full print:p-0 print:m-0">
         {!currentUserRole ? (
           <LoginPortal
             teachers={appData.teachers}
@@ -818,7 +818,7 @@ export default function App() {
             onLoginSuccess={handleLoginSuccess}
           />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 print:space-y-0">
             {/* Top Navigation Tabs */}
             <div className="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm print:hidden">
               <nav className="flex space-x-1 sm:space-x-2 overflow-x-auto scrollbar-thin py-1 px-1">

@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   UserPlus,
   Printer,
+  FileText,
   Download,
   Upload,
   Search,
@@ -82,6 +83,19 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
   onUpdateClassSubjects
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  useEffect(() => {
+    const handleBeforePrint = () => setIsPrinting(true);
+    const handleAfterPrint = () => setIsPrinting(false);
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
@@ -158,6 +172,12 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
     const q = searchQuery.toLowerCase();
     return rankedStudents.filter((s) => s.name.toLowerCase().includes(q));
   }, [rankedStudents, searchQuery]);
+
+  // When printing/exporting to PDF, ensure ALL students of the class are included
+  const studentsToRender = useMemo(() => {
+    if (isPrinting) return rankedStudents;
+    return filteredStudents;
+  }, [isPrinting, rankedStudents, filteredStudents]);
 
   // Stats
   const totalCount = rankedStudents.length;
@@ -621,6 +641,16 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
     setImportPreview(null);
   };
 
+  // Export/Print to PDF - ensures all students of the class are rendered and included
+  const handlePrint = () => {
+    if (searchQuery) {
+      setSearchQuery('');
+    }
+    setTimeout(() => {
+      window.print();
+    }, 120);
+  };
+
   return (
     <div className="space-y-6">
       {/* Printable Sheet Header */}
@@ -630,6 +660,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
         <div className="flex justify-between text-xs mt-2 font-medium">
           <span>ክፍል፦ {selectedClass}</span>
           <span>የትምህርት ዘመን፦ {currentYear} ዓ/ም</span>
+          <span>ጠቅላላ ተማሪዎች፦ {rankedStudents.length}</span>
           <span>መምህር፦ {assignedTeacher ? assignedTeacher.name : 'ልዩ አልተመደበም'}</span>
         </div>
       </div>
@@ -802,9 +833,17 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
               </>
             )}
 
-            {/* Print / PDF Button */}
+            {/* Print / PDF Buttons */}
             <button
-              onClick={() => window.print()}
+              onClick={handlePrint}
+              className="bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0 border border-rose-800"
+              title="የክፍሉን የተማሪዎች ውጤት መዝገብ በPDF አውርድ ወይም አትም"
+            >
+              <FileText className="w-3.5 h-3.5 text-rose-200" />
+              <span>📄 PDF አውርድ</span>
+            </button>
+            <button
+              onClick={handlePrint}
               className="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               title="ገጹን ወደ PDF ቀይር ወይም አትም"
             >
@@ -859,15 +898,15 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
       </div>
 
       {/* Main Table with Sticky Header & Sticky Columns */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto max-h-[72vh] overflow-y-auto relative scrollbar-thin">
-          <table className="w-full min-w-[1100px] border-collapse text-left text-xs">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden print:border-none print:shadow-none print:overflow-visible">
+        <div className="overflow-x-auto max-h-[72vh] overflow-y-auto relative scrollbar-thin print:max-h-none print:overflow-visible">
+          <table className="w-full min-w-[1100px] print:min-w-0 print:w-full border-collapse text-left text-xs">
             <thead className="sticky top-0 z-20 bg-slate-100 shadow-sm">
               <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-center">
-                <th className="py-3 px-2 border-r border-slate-200 sticky left-0 z-30 bg-slate-100 w-12">
+                <th className="py-3 px-2 border-r border-slate-200 sticky left-0 z-30 bg-slate-100 w-12 print:static print:border-slate-400">
                   ተ.ቁ
                 </th>
-                <th className="py-3 px-3 border-r border-slate-200 min-w-[170px] text-left sticky left-12 z-30 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                <th className="py-3 px-3 border-r border-slate-200 min-w-[170px] text-left sticky left-12 z-30 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none print:border-slate-400">
                   የተማሪው ሙሉ ስም
                 </th>
                 <th className="py-2 px-1 border-r border-slate-200 min-w-[72px]">
@@ -913,14 +952,14 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-center">
-              {filteredStudents.length === 0 ? (
+              {studentsToRender.length === 0 ? (
                 <tr>
                   <td colSpan={14} className="py-12 text-center text-slate-400">
                     ምንም ተማሪ አልተገኘም። አዲስ ተማሪ ለማስገባት "+ ተማሪ" የሚለውን ይጫኑ ወይም ከ Excel ይጫኑ።
                   </td>
                 </tr>
               ) : (
-                filteredStudents.map((s, index) => {
+                studentsToRender.map((s, index) => {
                   const isTopThree = s.rank !== undefined && s.rank <= 3;
                   return (
                     <tr
@@ -930,12 +969,12 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                       }`}
                     >
                       {/* Sticky Index Column */}
-                      <td className="py-2.5 px-2 border-r border-slate-200 font-medium text-slate-500 sticky left-0 z-10 bg-white group-hover:bg-slate-50 w-12">
+                      <td className="py-2.5 px-2 border-r border-slate-200 font-medium text-slate-500 sticky left-0 z-10 bg-white group-hover:bg-slate-50 w-12 print:static print:border-slate-400">
                         {index + 1}
                       </td>
 
                       {/* Sticky Name Column */}
-                      <td className="py-2.5 px-3 border-r border-slate-200 text-left font-semibold text-slate-900 sticky left-12 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                      <td className="py-2.5 px-3 border-r border-slate-200 text-left font-semibold text-slate-900 sticky left-12 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none print:border-slate-400">
                         {canEdit ? (
                           <input
                             type="text"
@@ -978,7 +1017,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                           >
                             <option value="ወ">ወንድ (ወ)</option>
                             <option value="ሴ">ሴት (ሴ)</option>
-                            <option value="">ባዶ (-)</option>
+                            <option value="">-</option>
                           </select>
                         ) : (
                           <span
@@ -1154,7 +1193,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                   >
                     <option value="ወ">ወንድ (ወ)</option>
                     <option value="ሴ">ሴት (ሴ)</option>
-                    <option value="">ባዶ (-)</option>
+                    <option value="">-</option>
                   </select>
                 </div>
               </div>
@@ -1485,7 +1524,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                       checked={batchDefaultGender === ''}
                       onChange={() => setBatchDefaultGender('')}
                     />
-                    <span className="font-bold text-slate-600">ባዶ (-)</span>
+                    <span className="font-bold text-slate-600">-</span>
                   </label>
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Calendar,
   UserX,
@@ -113,6 +113,18 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   // Quarter filter for 40-week grid
   const [quarterFilter, setQuarterFilter] = useState<QuarterFilter>('all');
   const [searchStudent, setSearchStudent] = useState('');
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  useEffect(() => {
+    const handleBeforePrint = () => setIsPrinting(true);
+    const handleAfterPrint = () => setIsPrinting(false);
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, []);
 
   // Weekly Taker Mode States
   const [selectedWeek, setSelectedWeek] = useState<number>(1);
@@ -174,11 +186,11 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   // Standard 40 rows per class: guaranteed minimum 40 rows!
   const TARGET_ROWS_COUNT = 40;
   const totalDisplayRows = useMemo(() => {
-    if (searchStudent.trim()) {
+    if (searchStudent.trim() && !isPrinting) {
       return filteredClassStudents.length;
     }
     return Math.max(TARGET_ROWS_COUNT, classStudents.length);
-  }, [classStudents.length, filteredClassStudents.length, searchStudent]);
+  }, [classStudents.length, filteredClassStudents.length, searchStudent, isPrinting]);
 
   // Compute student stats across 40 weeks
   const studentStatsMap = useMemo(() => {
@@ -590,7 +602,12 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
 
   // Export 40-Week Roster or Attendance Report to PDF
   const handleExportPDF = () => {
-    window.print();
+    if (searchStudent) {
+      setSearchStudent('');
+    }
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   // Export 40-Week Roster to CSV
@@ -1156,8 +1173,8 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
           </div>
 
           {/* Master 40-Week Grid Table with 40 Rows */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden print:border-slate-900 print:rounded-none">
-            <div className="overflow-x-auto max-h-[750px] relative">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden print:border-slate-900 print:rounded-none print:overflow-visible">
+            <div className="overflow-x-auto max-h-[750px] relative print:max-h-none print:overflow-visible">
               <table className="w-full min-w-[1300px] border-collapse text-xs text-center border-spacing-0 print:min-w-full print:text-[10px]">
                 <thead>
                   {/* Primary Headers */}
@@ -1245,7 +1262,8 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
 
                 <tbody className="divide-y divide-slate-200 print:divide-slate-900">
                   {Array.from({ length: totalDisplayRows }, (_, rowIndex) => {
-                    const student = filteredClassStudents[rowIndex];
+                    const activeStudentList = isPrinting ? classStudents : filteredClassStudents;
+                    const student = activeStudentList[rowIndex];
                     const isRegistered = !!student;
                     const rowNumber = rowIndex + 1;
 
@@ -1312,7 +1330,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                               >
                                 <option value="ወ">ወንድ (ወ)</option>
                                 <option value="ሴ">ሴት (ሴ)</option>
-                                <option value="">ባዶ (-)</option>
+                                <option value="">-</option>
                               </select>
                             ) : (
                               <span
@@ -1454,7 +1472,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                               >
                                 <option value="ወ">ወንድ (ወ)</option>
                                 <option value="ሴ">ሴት (ሴ)</option>
-                                <option value="">ባዶ (-)</option>
+                                <option value="">-</option>
                               </select>
                               <button
                                 type="button"
@@ -1851,10 +1869,14 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                           <h4 className="font-bold text-slate-900 text-xs">{student.name}</h4>
                           <span
                             className={`text-[11px] font-semibold ${
-                              student.gender === 'ወ' ? 'text-blue-600' : 'text-rose-600'
+                              student.gender === 'ወ'
+                                ? 'text-blue-600'
+                                : student.gender === 'ሴ'
+                                ? 'text-rose-600'
+                                : 'text-slate-400'
                             }`}
                           >
-                            {student.gender === 'ወ' ? 'ወንድ' : 'ሴት'}
+                            {student.gender === 'ወ' ? 'ወንድ' : student.gender === 'ሴ' ? 'ሴት' : '-'}
                             {student.age ? ` • ${student.age} ዓመት` : ''}
                           </span>
                         </div>
@@ -2034,8 +2056,8 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
           </div>
 
           {/* Table of Absentee Slips */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden print:border-none print:shadow-none print:overflow-visible">
+            <div className="overflow-x-auto print:overflow-visible">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-center">
@@ -2076,10 +2098,14 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                         <td className="py-2.5 px-3 border-r border-slate-200">
                           <span
                             className={`font-semibold ${
-                              rec.gender === 'ወ' ? 'text-blue-600' : 'text-rose-600'
+                              rec.gender === 'ወ'
+                                ? 'text-blue-600'
+                                : rec.gender === 'ሴ'
+                                ? 'text-rose-600'
+                                : 'text-slate-400'
                             }`}
                           >
-                            {rec.gender}
+                            {rec.gender || '-'}
                           </span>
                         </td>
                         <td className="py-2.5 px-4 border-r border-slate-200 text-left text-slate-700">
@@ -2154,7 +2180,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                 >
                   <option value="ወ">ወንድ (ወ)</option>
                   <option value="ሴ">ሴት (ሴ)</option>
-                  <option value="">ባዶ (-)</option>
+                  <option value="">-</option>
                 </select>
               </div>
 
@@ -2252,7 +2278,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                       checked={batchDefaultGender === ''}
                       onChange={() => setBatchDefaultGender('')}
                     />
-                    <span className="font-bold text-slate-600">ባዶ (-)</span>
+                    <span className="font-bold text-slate-600">-</span>
                   </label>
                 </div>
               </div>

@@ -191,10 +191,14 @@ export const TopAchieversTab: React.FC<TopAchieversTabProps> = ({
                     <td className="py-2.5 px-3 border-r border-slate-200">
                       <span
                         className={`font-semibold ${
-                          item.gender === 'ወ' ? 'text-blue-600' : 'text-rose-600'
+                          item.gender === 'ወ'
+                            ? 'text-blue-600'
+                            : item.gender === 'ሴ'
+                            ? 'text-rose-600'
+                            : 'text-slate-400'
                         }`}
                       >
-                        {item.gender}
+                        {item.gender || '-'}
                       </span>
                     </td>
                     <td className="py-2.5 px-3 border-r border-slate-200 text-slate-600">

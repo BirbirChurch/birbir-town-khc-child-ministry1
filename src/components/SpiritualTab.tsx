@@ -242,10 +242,14 @@ export const SpiritualTab: React.FC<SpiritualTabProps> = ({
                     <td className="py-2.5 px-3 border-r border-slate-200">
                       <span
                         className={`font-semibold ${
-                          m.gender === 'ወ' ? 'text-blue-600' : 'text-rose-600'
+                          m.gender === 'ወ'
+                            ? 'text-blue-600'
+                            : m.gender === 'ሴ'
+                            ? 'text-rose-600'
+                            : 'text-slate-400'
                         }`}
                       >
-                        {m.gender}
+                        {m.gender || '-'}
                       </span>
                     </td>
                     <td className="py-2.5 px-4 border-r border-slate-200 font-semibold text-teal-800">
