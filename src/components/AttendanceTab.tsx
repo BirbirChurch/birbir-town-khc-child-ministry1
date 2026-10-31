@@ -1332,13 +1332,13 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                   })}
                 </tbody>
 
-                {/* Table Footer: Weekly Totals Across Whole Class */}
-                <tfoot className="bg-slate-100 font-bold border-t-2 border-slate-300 text-slate-800 sticky bottom-0 z-20 print:static print:border-slate-900">
+                {/* Table Footer: Weekly Totals Across Whole Class (Appears at end of table) */}
+                <tfoot className="bg-slate-100 font-bold border-t-2 border-slate-300 text-slate-800 sticky bottom-0 z-20 print:static print:border-slate-900 print:table-row-group">
                   {/* Row 1: Present count */}
-                  <tr>
+                  <tr className="bg-emerald-50/50 print:bg-slate-100">
                     <td
-                      colSpan={3}
-                      className="py-2 px-3 border-r border-slate-300 text-left sticky left-0 bg-slate-100 z-30 text-emerald-800 print:static print:border-slate-900"
+                      colSpan={4}
+                      className="py-2 px-3 border-r border-slate-300 text-left sticky left-0 bg-slate-100 z-30 text-emerald-800 print:static print:border-slate-900 font-black"
                     >
                       ጠቅላላ የተገኙ (Present)
                     </td>
@@ -1354,10 +1354,10 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                   </tr>
 
                   {/* Row 2: Absent count */}
-                  <tr>
+                  <tr className="bg-rose-50/50 print:bg-slate-100">
                     <td
-                      colSpan={3}
-                      className="py-2 px-3 border-r border-slate-300 text-left sticky left-0 bg-slate-100 z-30 text-rose-800 print:static print:border-slate-900"
+                      colSpan={4}
+                      className="py-2 px-3 border-r border-slate-300 text-left sticky left-0 bg-slate-100 z-30 text-rose-800 print:static print:border-slate-900 font-black"
                     >
                       ጠቅላላ የቀሩ (Absent)
                     </td>
@@ -1375,7 +1375,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                   {/* Row 3: Class Attendance Rate % */}
                   <tr className="bg-slate-200 text-slate-900 border-t border-slate-300 print:border-slate-900">
                     <td
-                      colSpan={3}
+                      colSpan={4}
                       className="py-2 px-3 border-r border-slate-300 text-left sticky left-0 bg-slate-200 z-30 font-black text-blue-900 print:static print:border-slate-900"
                     >
                       የሳምንቱ አማካይ %
@@ -1484,9 +1484,15 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
             </div>
           )}
 
-          {/* Printable Signature Section (print only) */}
-          <div className="hidden print:block pt-10 mt-6 text-xs font-bold text-slate-900 border-t border-slate-400">
-            <div className="grid grid-cols-2 gap-12">
+          {/* Printable Bottom Summary & Signature Section (print only - at the very end of PDF) */}
+          <div className="hidden print:block pt-6 mt-6 border-t-2 border-slate-900 text-xs font-bold text-slate-900">
+            <div className="bg-slate-100 p-3 rounded-lg border border-slate-800 mb-6 flex justify-between items-center text-xs font-black">
+              <span>ክፍል፦ {selectedClass}</span>
+              <span>በመዝገብ ያሉ ተማሪዎች፦ {classStudents.length} / 40</span>
+              <span>የክፍሉ ዓመታዊ የመገኘት ምጣኔ፦ {overallClassStats.avgRate}%</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-12 pt-2">
               <div>
                 <p>የመማሪያ ክፍል መምህር ስም፦ _______________________</p>
                 <p className="mt-3">ፊርማ፦ _______________________ ቀን፦ ____________</p>
