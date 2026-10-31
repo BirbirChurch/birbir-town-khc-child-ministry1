@@ -856,6 +856,7 @@ export default function App() {
                   onDeleteAttendance={handleDeleteAttendance}
                   onAddStudentToClass={handleAddStudentToClass}
                   onUpdateStudent={handleUpdateStudent}
+                  onDeleteStudent={handleDeleteStudent}
                   currentUserRole={currentUserRole}
                   loggedInTeacher={loggedInTeacher}
                 />

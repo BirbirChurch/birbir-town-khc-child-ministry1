@@ -21,7 +21,9 @@ import {
   UserPlus,
   Plus,
   FileText,
-  Check
+  Check,
+  RotateCcw,
+  Eraser
 } from 'lucide-react';
 import {
   AbsenteeRecord,
@@ -65,6 +67,7 @@ interface AttendanceTabProps {
   onAddAttendance: (record: Omit<AbsenteeRecord, 'id'>) => void;
   onAddAttendanceBatch?: (records: Omit<AbsenteeRecord, 'id'>[]) => void;
   onDeleteAttendance: (id: number) => void;
+  onDeleteStudent?: (studentId: number) => void;
   onAddStudentToClass?: (className: string, student: Omit<Student, 'id'>) => void;
   onUpdateStudent?: (student: Student) => void;
   currentUserRole: Role | null;
@@ -88,6 +91,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   onAddAttendance,
   onAddAttendanceBatch,
   onDeleteAttendance,
+  onDeleteStudent,
   onAddStudentToClass,
   onUpdateStudent,
   currentUserRole,
@@ -385,6 +389,35 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   const handleClearWeek = (weekNumber: number) => {
     if (confirm(`የሳምንት ${weekNumber} አቴንዳንስ ሙሉ በሙሉ እንዲጠፋ ይፈልጋሉ?`)) {
       onClearWeekAttendance(currentYear, selectedClass, weekNumber);
+    }
+  };
+
+  // Clear all 40-week records for the currently selected class
+  const handleClearAllClassAttendance = () => {
+    if (confirm(`የ"${selectedClass}" ክፍል የ40 ሳምንታት አቴንዳንስ መረጃ በሙሉ እንዲጠፋ ይፈልጋሉ?`)) {
+      for (let w = 1; w <= 40; w++) {
+        onClearWeekAttendance(currentYear, selectedClass, w);
+      }
+      alert(`✓ የ"${selectedClass}" ክፍል አቴንዳንስ መረጃ በሙሉ ተፀድቷል።`);
+    }
+  };
+
+  // Delete all registered students in the currently selected class
+  const handleDeleteAllClassStudents = () => {
+    if (!onDeleteStudent) return;
+    if (classStudents.length === 0) {
+      alert('በዚህ ክፍል ውስጥ የተመዘገበ ተማሪ የለም!');
+      return;
+    }
+    if (
+      confirm(
+        `⚠️ የማስጠንቀቂያ መልእክት፦\nየ"${selectedClass}" ክፍል ${classStudents.length} ተማሪዎች ሙሉ በሙሉ ይደለታሉ። እርግጠኛ ነዎት?`
+      )
+    ) {
+      classStudents.forEach((student) => {
+        onDeleteStudent(student.id);
+      });
+      alert(`✓ የ"${selectedClass}" ክፍል ተማሪዎች በሙሉ ተሰርዘዋል።`);
     }
   };
 
@@ -843,6 +876,28 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
               <Printer className="w-3.5 h-3.5" />
               <span>ማተሚያ (Print)</span>
             </button>
+
+            {/* Clear Class Attendance Button */}
+            <button
+              onClick={handleClearAllClassAttendance}
+              className="bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0 border border-amber-800"
+              title="የዚሁን ክፍል የ40 ሳምንት አቴንዳንስ መዝገብ አጽዳ"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-200" />
+              <span>አቴንዳንስ አጽዳ</span>
+            </button>
+
+            {/* Delete Class Students Button */}
+            {onDeleteStudent && (
+              <button
+                onClick={handleDeleteAllClassStudents}
+                className="bg-red-700 hover:bg-red-600 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0 border border-red-800"
+                title="የዚህን ክፍል ተማሪዎች በሙሉ ሰርዝ"
+              >
+                <Eraser className="w-3.5 h-3.5 text-red-200" />
+                <span>ተማሪዎችን ሰርዝ</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1106,6 +1161,9 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                     <th className="py-2.5 px-2.5 bg-blue-50 text-blue-900 min-w-[55px] font-bold print:border-slate-900">
                       %
                     </th>
+                    <th className="py-2.5 px-2 bg-slate-100 text-slate-700 w-12 font-bold print:hidden">
+                      ተግባር
+                    </th>
                   </tr>
                 </thead>
 
@@ -1258,6 +1316,24 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                               {st.totalRecorded > 0 ? `${st.rate}%` : '-'}
                             </span>
                           </td>
+
+                          {/* Action (Delete Student) */}
+                          <td className="py-2 px-1 text-center print:hidden">
+                            {onDeleteStudent && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`"${student.name}" ከተማሪዎች ዝርዝር ውስጥ ይደለታል?`)) {
+                                    onDeleteStudent(student.id);
+                                  }
+                                }}
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                title={`${student.name} ሰርዝ`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       );
                     }
@@ -1359,6 +1435,9 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                         </td>
                         <td className="py-2 px-1 bg-blue-50/10 text-slate-300 print:border-slate-900">
                           -
+                        </td>
+                        <td className="py-2 px-1 text-center print:hidden">
+                          <span className="text-slate-300">-</span>
                         </td>
                       </tr>
                     );
@@ -1699,26 +1778,42 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                         </div>
                       </div>
 
-                      {/* Current Status Indicator Badge */}
-                      <span
-                        className={`text-xs font-black px-2 py-0.5 rounded-lg ${
-                          currentStatus === 'P'
-                            ? 'bg-emerald-600 text-white'
+                      {/* Current Status Indicator Badge & Delete Button */}
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-xs font-black px-2 py-0.5 rounded-lg ${
+                            currentStatus === 'P'
+                              ? 'bg-emerald-600 text-white'
+                              : currentStatus === 'A'
+                              ? 'bg-rose-600 text-white'
+                              : currentStatus === 'E'
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-slate-100 text-slate-400'
+                          }`}
+                        >
+                          {currentStatus === 'P'
+                            ? 'ተገኝቷል'
                             : currentStatus === 'A'
-                            ? 'bg-rose-600 text-white'
+                            ? 'ቀርቷል'
                             : currentStatus === 'E'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-slate-100 text-slate-400'
-                        }`}
-                      >
-                        {currentStatus === 'P'
-                          ? 'ተገኝቷል'
-                          : currentStatus === 'A'
-                          ? 'ቀርቷል'
-                          : currentStatus === 'E'
-                          ? 'ፍቃድ'
-                          : 'ያልተመዘገበ'}
-                      </span>
+                            ? 'ፍቃድ'
+                            : 'ያልተመዘገበ'}
+                        </span>
+                        {onDeleteStudent && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (confirm(`"${student.name}" ከተማሪዎች ዝርዝር ውስጥ ይደለታል?`)) {
+                                onDeleteStudent(student.id);
+                              }
+                            }}
+                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                            title={`${student.name} ሰርዝ`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Toggle Buttons */}
