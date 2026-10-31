@@ -68,6 +68,7 @@ interface AttendanceTabProps {
   onAddAttendanceBatch?: (records: Omit<AbsenteeRecord, 'id'>[]) => void;
   onDeleteAttendance: (id: number) => void;
   onDeleteStudent?: (studentId: number) => void;
+  onClearClassStudents?: (className: string) => void;
   onAddStudentToClass?: (className: string, student: Omit<Student, 'id'>) => void;
   onUpdateStudent?: (student: Student) => void;
   currentUserRole: Role | null;
@@ -92,6 +93,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   onAddAttendanceBatch,
   onDeleteAttendance,
   onDeleteStudent,
+  onClearClassStudents,
   onAddStudentToClass,
   onUpdateStudent,
   currentUserRole,
@@ -404,7 +406,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
 
   // Delete all registered students in the currently selected class
   const handleDeleteAllClassStudents = () => {
-    if (!onDeleteStudent) return;
+    if (!onDeleteStudent && !onClearClassStudents) return;
     if (classStudents.length === 0) {
       alert('በዚህ ክፍል ውስጥ የተመዘገበ ተማሪ የለም!');
       return;
@@ -414,9 +416,13 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
         `⚠️ የማስጠንቀቂያ መልእክት፦\nየ"${selectedClass}" ክፍል ${classStudents.length} ተማሪዎች ሙሉ በሙሉ ይደለታሉ። እርግጠኛ ነዎት?`
       )
     ) {
-      classStudents.forEach((student) => {
-        onDeleteStudent(student.id);
-      });
+      if (onClearClassStudents) {
+        onClearClassStudents(selectedClass);
+      } else if (onDeleteStudent) {
+        classStudents.forEach((student) => {
+          onDeleteStudent(student.id);
+        });
+      }
       alert(`✓ የ"${selectedClass}" ክፍል ተማሪዎች በሙሉ ተሰርዘዋል።`);
     }
   };

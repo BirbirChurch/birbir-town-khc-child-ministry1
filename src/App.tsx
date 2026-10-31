@@ -176,17 +176,19 @@ export default function App() {
   const handleUpdateStudent = (updatedStudent: Student) => {
     updateAppData((prev) => {
       const yearStudents = prev.students?.[currentYear] || {};
-      const classStudents = yearStudents[selectedClass] || [];
-      const updatedList = classStudents.map((s) => (s.id === updatedStudent.id ? updatedStudent : s));
+      const updatedYearStudents: { [cName: string]: Student[] } = {};
+
+      Object.entries(yearStudents).forEach(([cName, sList]) => {
+        updatedYearStudents[cName] = (sList || []).map((s) =>
+          String(s.id) === String(updatedStudent.id) ? updatedStudent : s
+        );
+      });
 
       return {
         ...prev,
         students: {
           ...prev.students,
-          [currentYear]: {
-            ...yearStudents,
-            [selectedClass]: updatedList
-          }
+          [currentYear]: updatedYearStudents
         }
       };
     });
@@ -308,20 +310,23 @@ export default function App() {
     );
   };
 
-  const handleDeleteStudent = (studentId: number) => {
+  const handleDeleteStudent = (studentId: number | string) => {
     updateAppData(
       (prev) => {
         const yearStudents = prev.students?.[currentYear] || {};
-        const classStudents = yearStudents[selectedClass] || [];
+        const updatedYearStudents: { [cName: string]: Student[] } = {};
+
+        Object.entries(yearStudents).forEach(([cName, sList]) => {
+          updatedYearStudents[cName] = (sList || []).filter(
+            (s) => String(s.id) !== String(studentId)
+          );
+        });
 
         return {
           ...prev,
           students: {
             ...prev.students,
-            [currentYear]: {
-              ...yearStudents,
-              [selectedClass]: classStudents.filter((s) => s.id !== studentId)
-            }
+            [currentYear]: updatedYearStudents
           }
         };
       },
@@ -857,6 +862,7 @@ export default function App() {
                   onAddStudentToClass={handleAddStudentToClass}
                   onUpdateStudent={handleUpdateStudent}
                   onDeleteStudent={handleDeleteStudent}
+                  onClearClassStudents={handleClearClassStudents}
                   currentUserRole={currentUserRole}
                   loggedInTeacher={loggedInTeacher}
                 />
