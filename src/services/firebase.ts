@@ -1,9 +1,14 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getDatabase, ref, onValue, set, get, Database } from 'firebase/database';
-import { getFirestore, doc, onSnapshot, setDoc, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot, setDoc, getDoc, Firestore, setLogLevel } from 'firebase/firestore';
 import { AppData } from '../types';
 import { INITIAL_APP_DATA } from '../constants/initialData';
 import { sanitizeAndDeduplicateAppData } from '../utils/idGenerator';
+
+// Suppress noisy internal Firestore unreachable backend warnings when only Realtime Database is enabled
+try {
+  setLogLevel('silent');
+} catch {}
 
 export interface FirebaseProjectProfile {
   id: string;
@@ -421,8 +426,8 @@ export const subscribeToAppData = (
     }
   }
 
-  // Try Firestore alongside RTDB
-  if (firestoreInstance) {
+  // Only try Firestore listener as fallback if Realtime Database is not present
+  if (firestoreInstance && !rtdbInstance) {
     try {
       const docRef = doc(firestoreInstance, 'church_data', DB_KEY);
       unsubFirestore = onSnapshot(
@@ -430,19 +435,23 @@ export const subscribeToAppData = (
         (snap) => {
           if (snap.exists()) {
             handleRemoteData(snap.data());
+            currentDiagnostic = {
+              status: 'connected',
+              projectId: profile.id,
+              projectLabel: profile.label,
+              databaseURL: profile.config.databaseURL,
+              lastSyncTime: new Date().toLocaleTimeString('am-ET'),
+              totalStudentsLocal: countStudentsInData(loadStoredLocalData())
+            };
+            onStatusChange('connected', currentDiagnostic);
           }
-          currentDiagnostic = {
-            status: 'connected',
-            projectId: profile.id,
-            projectLabel: profile.label,
-            databaseURL: profile.config.databaseURL,
-            lastSyncTime: new Date().toLocaleTimeString('am-ET'),
-            totalStudentsLocal: countStudentsInData(loadStoredLocalData())
-          };
-          onStatusChange('connected', currentDiagnostic);
         },
-        (err) => {
-          console.warn('Firestore note:', err?.message);
+        () => {
+          // Gracefully ignore Firestore offline / backend connection notes
+          if (unsubFirestore) {
+            unsubFirestore();
+            unsubFirestore = null;
+          }
         }
       );
     } catch {}
@@ -473,14 +482,18 @@ export const syncAppDataToFirebase = async (data: AppData): Promise<boolean> => 
       synced = true;
       currentDiagnostic.lastSyncTime = new Date().toLocaleTimeString('am-ET');
     } catch (error: any) {
-      console.warn('RTDB sync failed:', error?.message);
+      console.warn('RTDB sync note:', error?.message);
     }
   }
 
-  if (firestoreInstance) {
+  if (firestoreInstance && !rtdbInstance) {
     try {
       const docRef = doc(firestoreInstance, 'church_data', DB_KEY);
-      await setDoc(docRef, payload, { merge: true });
+      // Timeout Firestore setDoc so it never hangs if backend is unreachable
+      await Promise.race([
+        setDoc(docRef, payload, { merge: true }),
+        new Promise<void>((_, reject) => setTimeout(() => reject(new Error('timeout')), 2000))
+      ]);
       synced = true;
     } catch {}
   }
@@ -510,7 +523,7 @@ export const scanAndRecoverPreviousCloudData = async (): Promise<{
           // Simple timeout promise for quick probe
           const snap = await Promise.race([
             get(dataRef),
-            new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+            new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
           ]);
           if (snap && snap.exists()) {
             const val = snap.val();
@@ -532,8 +545,23 @@ export const scanAndRecoverPreviousCloudData = async (): Promise<{
       try {
         const tempFirestore = getFirestore(tempApp);
         const docRef = doc(tempFirestore, 'church_data', DB_KEY);
-        // check snap
-        const snap = await onSnapshot;
+        const snap = await Promise.race([
+          getDoc(docRef),
+          new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]);
+        if (snap && snap.exists()) {
+          const val = snap.data();
+          const count = countStudentsInData(val);
+          if (count > 0 || (val?.teachers && val.teachers.length > 0)) {
+            return {
+              found: true,
+              projectLabel: proj.label,
+              projectId: proj.id,
+              data: val as AppData,
+              studentCount: count
+            };
+          }
+        }
       } catch {}
     } catch {}
   }

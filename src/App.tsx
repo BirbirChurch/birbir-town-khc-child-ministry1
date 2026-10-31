@@ -383,6 +383,31 @@ export default function App() {
     );
   };
 
+  const handleSetClassAge = (className: string, newAge: string) => {
+    updateAppData(
+      (prev) => {
+        const yearStudents = prev.students?.[currentYear] || {};
+        const classStudents = yearStudents[className] || [];
+        const updatedList = classStudents.map((s) => ({
+          ...s,
+          age: newAge
+        }));
+
+        return {
+          ...prev,
+          students: {
+            ...prev.students,
+            [currentYear]: {
+              ...yearStudents,
+              [className]: updatedList
+            }
+          }
+        };
+      },
+      { immediate: true }
+    );
+  };
+
   // Attendance handlers
   const handleAddAttendance = (record: Omit<AbsenteeRecord, 'id'>) => {
     const recWithId: AbsenteeRecord = {
@@ -835,6 +860,7 @@ export default function App() {
                   onDeleteStudent={handleDeleteStudent}
                   onClearClassStudents={handleClearClassStudents}
                   onClearClassScores={handleClearClassScores}
+                  onSetClassAge={handleSetClassAge}
                   onGoToAttendance={() => setActiveTab('attendanceTab')}
                   currentUserRole={currentUserRole}
                   loggedInTeacher={loggedInTeacher}
@@ -863,6 +889,7 @@ export default function App() {
                   onUpdateStudent={handleUpdateStudent}
                   onDeleteStudent={handleDeleteStudent}
                   onClearClassStudents={handleClearClassStudents}
+                  onSetClassAge={handleSetClassAge}
                   currentUserRole={currentUserRole}
                   loggedInTeacher={loggedInTeacher}
                 />

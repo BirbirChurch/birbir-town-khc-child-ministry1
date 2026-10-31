@@ -50,6 +50,7 @@ interface ClassesTabProps {
   onDeleteStudent: (studentId: number) => void;
   onClearClassStudents?: (className: string) => void;
   onClearClassScores?: (className: string) => void;
+  onSetClassAge?: (className: string, newAge: string) => void;
   onGoToAttendance?: () => void;
   currentUserRole: Role | null;
   loggedInTeacher: Teacher | null;
@@ -72,6 +73,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
   onDeleteStudent,
   onClearClassStudents,
   onClearClassScores,
+  onSetClassAge,
   onGoToAttendance,
   currentUserRole,
   loggedInTeacher,
@@ -90,6 +92,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
   const [showBatchAddModal, setShowBatchAddModal] = useState(false);
   const [batchNamesText, setBatchNamesText] = useState('');
   const [batchDefaultGender, setBatchDefaultGender] = useState<'ወ' | 'ሴ' | ''>('');
+  const [batchDefaultAge, setBatchDefaultAge] = useState<string>('8');
 
   // Excel/CSV import modal and preview states
   const [importPreview, setImportPreview] = useState<{
@@ -320,6 +323,27 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
     }
   };
 
+  // Apply same age to all students in this class
+  const handleApplyClassAge = (newAge: string) => {
+    if (!canEdit) return;
+    if (students.length === 0) {
+      alert('በዚህ ክፍል ውስጥ የተመዘገበ ተማሪ የለም!');
+      return;
+    }
+    if (
+      window.confirm(
+        `የ"${selectedClass}" ክፍል ${students.length} ተማሪዎችን ዕድሜ በሙሉ ወደ "${newAge} ዓመት" መቀየር ይፈልጋሉ?`
+      )
+    ) {
+      if (onSetClassAge) {
+        onSetClassAge(selectedClass, newAge);
+      } else {
+        students.forEach((s) => onUpdateStudent({ ...s, age: newAge }));
+      }
+      alert(`✓ የ"${selectedClass}" ክፍል ተማሪዎች በሙሉ ዕድሜያቸው ${newAge} ዓመት ተደርጓል!`);
+    }
+  };
+
   const handleInfoChange = (
     student: Student,
     field: 'name' | 'age' | 'gender',
@@ -366,7 +390,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
       if (name && name.length >= 2) {
         newStudents.push({
           name,
-          age: '7',
+          age: batchDefaultAge || '8',
           gender,
           m1: 0,
           m2: 0,
@@ -750,6 +774,31 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                   <Layers className="w-3.5 h-3.5" />
                   <span>+ በቡድን አስገባ</span>
                 </button>
+
+                {/* Class-wide Age Selector Dropdown in Toolbar */}
+                <div
+                  className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl px-2.5 py-1.5 transition flex items-center gap-1.5 shadow-xs shrink-0"
+                  title="የዚህን ክፍል ተማሪዎች በሙሉ አንድ አይነት ዕድሜ (ከ4 እስከ 17) ምረጥ"
+                >
+                  <span className="text-xs font-bold text-indigo-900 whitespace-nowrap">🎂 የክፍሉ ዕድሜ፦</span>
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleApplyClassAge(e.target.value);
+                        e.target.value = '';
+                      }
+                    }}
+                    defaultValue=""
+                    className="bg-white border border-indigo-300 text-indigo-950 font-bold text-xs rounded-lg px-2 py-1 cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="" disabled>ለሁሉም ምረጥ (4-17)...</option>
+                    {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                      <option key={`bar_class_age_${a}`} value={String(a)}>
+                        {a} ዓመት
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
 
@@ -821,7 +870,31 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                 <th className="py-3 px-3 border-r border-slate-200 min-w-[170px] text-left sticky left-12 z-30 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                   የተማሪው ሙሉ ስም
                 </th>
-                <th className="py-3 px-2 border-r border-slate-200 w-14">ዕድሜ</th>
+                <th className="py-2 px-1 border-r border-slate-200 min-w-[72px]">
+                  <div className="flex flex-col items-center justify-center gap-0.5">
+                    <span>ዕድሜ</span>
+                    {canEdit && students.length > 0 && (
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleApplyClassAge(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        defaultValue=""
+                        className="text-[10px] bg-white border border-slate-300 rounded px-1 py-0.5 font-bold text-slate-700 cursor-pointer print:hidden shadow-xs hover:border-blue-500"
+                        title="ለክፍሉ ተማሪዎች በሙሉ አንድ አይነት ዕድሜ ምረጥ"
+                      >
+                        <option value="" disabled>ለሁሉም ▾</option>
+                        {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                          <option key={`head_age_${a}`} value={String(a)}>
+                            {a}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </th>
                 <th className="py-3 px-2 border-r border-slate-200 w-12">ፆታ</th>
                 {assessmentsConfig.map((ass) => (
                   <th key={ass.key} className={`py-3 px-2 border-r border-slate-200 w-16 ${ass.bg}`}>
@@ -1415,6 +1488,22 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                     <span className="font-bold text-slate-600">ባዶ (-)</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Default Age for Batch Addition */}
+              <div className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                <span className="text-slate-600 font-semibold">ነባሪ ዕድሜ ለሁሉም፦</span>
+                <select
+                  value={batchDefaultAge}
+                  onChange={(e) => setBatchDefaultAge(e.target.value)}
+                  className="bg-white border border-slate-300 rounded-lg text-xs font-bold px-2.5 py-1 text-slate-800 cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                >
+                  {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                    <option key={`batch_age_opt_${a}`} value={String(a)}>
+                      {a} ዓመት
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <p className="text-[11px] text-slate-500">
