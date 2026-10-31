@@ -878,12 +878,18 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                       {/* Age */}
                       <td className="py-2.5 px-1 border-r border-slate-200">
                         {canEdit ? (
-                          <input
-                            type="text"
-                            value={s.age}
+                          <select
+                            value={s.age || ''}
                             onChange={(e) => handleInfoChange(s, 'age', e.target.value)}
-                            className="w-10 text-center bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 focus:bg-white px-1 py-0.5 rounded text-xs outline-none"
-                          />
+                            className="bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 focus:bg-white px-0.5 py-0.5 rounded text-xs outline-none font-bold text-slate-800 text-center cursor-pointer"
+                          >
+                            <option value="">-</option>
+                            {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                              <option key={`opt_age_${a}`} value={String(a)}>
+                                {a}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <span>{s.age}</span>
                         )}
@@ -1050,14 +1056,18 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     ዕድሜ፦
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={newStudentAge}
                     onChange={(e) => setNewStudentAge(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    min="1"
-                    max="25"
-                  />
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white font-bold cursor-pointer"
+                  >
+                    <option value="">- ይምረጡ -</option>
+                    {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                      <option key={`opt_modal_age_${a}`} value={String(a)}>
+                        {a} ዓመት
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

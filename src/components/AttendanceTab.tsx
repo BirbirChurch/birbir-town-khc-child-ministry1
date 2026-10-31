@@ -1215,14 +1215,20 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                           {/* Age (Sticky) */}
                           <td className="py-2 px-1 border-r border-slate-200 text-slate-700 font-semibold sticky left-[210px] bg-white group-hover:bg-slate-50 z-20 print:static print:border-slate-900">
                             {onUpdateStudent ? (
-                              <input
-                                type="text"
-                                value={student.age || '12'}
+                              <select
+                                value={student.age || ''}
                                 onChange={(e) => handleStudentInfoChange(student, 'age', e.target.value)}
-                                className="w-10 text-center bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-600 focus:bg-white px-1 py-0.5 rounded text-xs outline-none"
-                              />
+                                className="bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-600 rounded px-0.5 py-0.5 text-xs outline-none font-bold text-slate-800 text-center cursor-pointer"
+                              >
+                                <option value="">-</option>
+                                {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                                  <option key={`att_opt_age_${a}`} value={String(a)}>
+                                    {a}
+                                  </option>
+                                ))}
+                              </select>
                             ) : (
-                              <span>{student.age || '12'}</span>
+                              <span>{student.age || '-'}</span>
                             )}
                           </td>
 

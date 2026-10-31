@@ -308,14 +308,18 @@ export const ChoirTab: React.FC<ChoirTabProps> = ({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     ዕድሜ፦
                   </label>
-                  <input
-                    type="number"
+                  <select
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                    min="3"
-                    max="30"
-                  />
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white font-bold cursor-pointer"
+                  >
+                    <option value="">- ይምረጡ -</option>
+                    {Array.from({ length: 14 }, (_, i) => i + 4).map((a) => (
+                      <option key={`choir_age_opt_${a}`} value={String(a)}>
+                        {a} ዓመት
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
