@@ -18,7 +18,8 @@ import {
   Layers,
   HelpCircle,
   Check,
-  AlertCircle
+  AlertCircle,
+  Users
 } from 'lucide-react';
 import { Student, Teacher, Role } from '../types';
 import {
@@ -53,6 +54,7 @@ interface ClassesTabProps {
   onClearClassScores?: (className: string) => void;
   onSetClassAge?: (className: string, newAge: string) => void;
   onGoToAttendance?: () => void;
+  onGoToAllStudents?: () => void;
   currentUserRole: Role | null;
   loggedInTeacher: Teacher | null;
   subjects?: string[];
@@ -76,6 +78,7 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
   onClearClassScores,
   onSetClassAge,
   onGoToAttendance,
+  onGoToAllStudents,
   currentUserRole,
   loggedInTeacher,
   subjects = [],
@@ -716,6 +719,19 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                   <span>ወደ "{siblingSection}" ቀይር</span>
                 </button>
               )}
+
+              {/* Master All Students Shortcut for Coordinator / Leaders */}
+              {onGoToAllStudents && (currentUserRole === 'admin' || currentUserRole === 'leader') && (
+                <button
+                  type="button"
+                  onClick={onGoToAllStudents}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-900 text-xs font-bold hover:bg-indigo-100 transition shadow-sm cursor-pointer"
+                  title="የሁሉንም ክፍሎች የተመዘገቡ ተማሪዎች ማስተር ገጽ ክፈት"
+                >
+                  <Users className="w-3.5 h-3.5 text-indigo-700" />
+                  <span>👥 ሁሉንም የተመዘገቡ ተማሪዎች በአንድ ላይ እይ</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -906,8 +922,8 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                 <th className="py-3 px-2 border-r border-slate-200 sticky left-0 z-30 bg-slate-100 w-12 print:static print:border-slate-400">
                   ተ.ቁ
                 </th>
-                <th className="py-3 px-3 border-r border-slate-200 min-w-[170px] text-left sticky left-12 z-30 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none print:border-slate-400">
-                  የተማሪው ሙሉ ስም
+                <th className="py-3 px-3 border-r border-slate-200 min-w-[240px] text-left sticky left-12 z-30 bg-slate-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none print:border-slate-400 text-[12pt] font-extrabold text-slate-900">
+                  የተማሪው ሙሉ ስም (12pt)
                 </th>
                 <th className="py-2 px-1 border-r border-slate-200 min-w-[72px]">
                   <div className="flex flex-col items-center justify-center gap-0.5">
@@ -974,16 +990,16 @@ export const ClassesTab: React.FC<ClassesTabProps> = ({
                       </td>
 
                       {/* Sticky Name Column */}
-                      <td className="py-2.5 px-3 border-r border-slate-200 text-left font-semibold text-slate-900 sticky left-12 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] print:static print:shadow-none print:border-slate-400">
+                      <td className="py-2.5 px-3 border-r border-slate-200 text-left font-bold text-slate-900 sticky left-12 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] min-w-[240px] print:static print:shadow-none print:border-slate-400">
                         {canEdit ? (
                           <input
                             type="text"
                             value={s.name}
                             onChange={(e) => handleInfoChange(s, 'name', e.target.value)}
-                            className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 focus:bg-white px-1 py-0.5 rounded text-xs outline-none"
+                            className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 focus:bg-white px-1 py-0.5 rounded text-[12pt] outline-none font-bold text-slate-900 leading-normal"
                           />
                         ) : (
-                          <span>{s.name}</span>
+                          <span className="text-[12pt] font-bold text-slate-900 leading-normal">{s.name}</span>
                         )}
                       </td>
 

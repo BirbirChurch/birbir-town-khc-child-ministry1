@@ -77,7 +77,7 @@ interface AttendanceTabProps {
 }
 
 type AttendanceViewMode = 'roster40' | 'weeklyTaker' | 'absenteeList';
-type QuarterFilter = 'all' | 'q1' | 'q2' | 'q3' | 'q4';
+type QuarterFilter = 'all' | 'h1' | 'h2' | 'q1' | 'q2' | 'q3' | 'q4';
 
 export const AttendanceTab: React.FC<AttendanceTabProps> = ({
   currentYear,
@@ -174,13 +174,15 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
     return weeklyAttendance?.[selectedClass] || {};
   }, [weeklyAttendance, selectedClass]);
 
-  // Weeks range based on Quarter filter
+  // Weeks range based on Half-Year / Quarter filter
   const displayedWeeks = useMemo(() => {
+    if (quarterFilter === 'h1') return Array.from({ length: 20 }, (_, i) => i + 1); // 1-20 (1ኛ ግማሽ ዓመት)
+    if (quarterFilter === 'h2') return Array.from({ length: 20 }, (_, i) => i + 21); // 21-40 (2ኛ ግማሽ ዓመት)
     if (quarterFilter === 'q1') return Array.from({ length: 10 }, (_, i) => i + 1); // 1-10
     if (quarterFilter === 'q2') return Array.from({ length: 10 }, (_, i) => i + 11); // 11-20
     if (quarterFilter === 'q3') return Array.from({ length: 10 }, (_, i) => i + 21); // 21-30
     if (quarterFilter === 'q4') return Array.from({ length: 10 }, (_, i) => i + 31); // 31-40
-    return Array.from({ length: 40 }, (_, i) => i + 1); // 1-40
+    return Array.from({ length: 40 }, (_, i) => i + 1); // 1-40 (ሁሉም)
   }, [quarterFilter]);
 
   // Standard 40 rows per class: guaranteed minimum 40 rows!
@@ -940,7 +942,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
 
             {/* Print / PDF */}
             <button
-              onClick={() => window.print()}
+              onClick={handleExportPDF}
               className="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm cursor-pointer shrink-0"
               title="የ40 መስመር አቴንዳንስ መዝገብ አትም (Print)"
             >
@@ -1021,26 +1023,54 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
         <div className="space-y-4">
           {/* Sub Toolbar for Grid: Quarter Filter & Quick Search */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200/80 shadow-sm print:hidden">
-            {/* Quarter Filter Tabs */}
+            {/* Half-Year & Quarter Filter Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5" /> ሩብ፦
+              <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1 shrink-0">
+                <Layers className="w-3.5 h-3.5 text-emerald-600" /> ክፍለ-ጊዜ፦
               </span>
+
+              {/* Prominent Half-Year (ግማሽ ዓመት) Buttons */}
+              <button
+                onClick={() => setQuarterFilter('h1')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition whitespace-nowrap flex items-center gap-1 shrink-0 ${
+                  quarterFilter === 'h1'
+                    ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-400'
+                    : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100'
+                }`}
+                title="1ኛ ግማሽ ዓመት (ሳምንት 1 - 20) አቴንዳንስ አሳይ"
+              >
+                <span>📅 1ኛ ግማሽ ዓመት (1-20)</span>
+              </button>
+
+              <button
+                onClick={() => setQuarterFilter('h2')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition whitespace-nowrap flex items-center gap-1 shrink-0 ${
+                  quarterFilter === 'h2'
+                    ? 'bg-emerald-700 text-white shadow-md ring-2 ring-emerald-400'
+                    : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100'
+                }`}
+                title="2ኛ ግማሽ ዓመት (ሳምንት 21 - 40) አቴንዳንስ አሳይ"
+              >
+                <span>📅 2ኛ ግማሽ ዓመት (21-40)</span>
+              </button>
+
+              <span className="text-slate-300 font-normal mx-0.5 shrink-0">|</span>
+
               <button
                 onClick={() => setQuarterFilter('all')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap shrink-0 ${
                   quarterFilter === 'all'
                     ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                ሁሉም 40 ሳምንታት
+                ሁሉም (1-40)
               </button>
               <button
                 onClick={() => setQuarterFilter('q1')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   quarterFilter === 'q1'
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-teal-700 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -1048,9 +1078,9 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
               </button>
               <button
                 onClick={() => setQuarterFilter('q2')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   quarterFilter === 'q2'
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-teal-700 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -1058,9 +1088,9 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
               </button>
               <button
                 onClick={() => setQuarterFilter('q3')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   quarterFilter === 'q3'
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-teal-700 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -1068,9 +1098,9 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
               </button>
               <button
                 onClick={() => setQuarterFilter('q4')}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                className={`px-2 py-1 rounded-lg text-xs font-semibold transition whitespace-nowrap shrink-0 ${
                   quarterFilter === 'q4'
-                    ? 'bg-emerald-600 text-white shadow-sm'
+                    ? 'bg-teal-700 text-white shadow-sm'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
@@ -1179,13 +1209,13 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                 <thead>
                   {/* Primary Headers */}
                   <tr className="bg-slate-100 text-slate-800 font-bold border-b border-slate-200 sticky top-0 z-30 shadow-xs print:static print:bg-slate-200 print:border-slate-900">
-                    <th className="py-2.5 px-2 border-r border-slate-200 w-10 sticky left-0 bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900">
+                    <th className="py-2.5 px-2 border-r border-slate-200 w-12 sticky left-0 bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900 text-center">
                       ተ.ቁ
                     </th>
-                    <th className="py-2.5 px-3 border-r border-slate-200 min-w-[170px] text-left sticky left-10 bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900">
-                      የተማሪው ሙሉ ስም
+                    <th className="py-2.5 px-3 border-r border-slate-200 min-w-[240px] text-left text-[12pt] font-extrabold text-slate-900 sticky left-[48px] bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900">
+                      የተማሪው ሙሉ ስም (12pt)
                     </th>
-                    <th className="py-2 px-1 border-r border-slate-200 min-w-[65px] sticky left-[210px] bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900">
+                    <th className="py-2 px-1 border-r border-slate-200 min-w-[65px] sticky left-[288px] bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900">
                       <div className="flex flex-col items-center justify-center gap-0.5">
                         <span>ዕድሜ</span>
                         {classStudents.length > 0 && (
@@ -1210,7 +1240,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                         )}
                       </div>
                     </th>
-                    <th className="py-2.5 px-2 border-r border-slate-200 w-12 sticky left-[258px] bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900">
+                    <th className="py-2.5 px-2 border-r border-slate-200 w-14 sticky left-[353px] bg-slate-100 z-40 print:static print:bg-slate-200 print:border-slate-900 text-center">
                       ፆታ
                     </th>
 
@@ -1282,26 +1312,26 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                           className="hover:bg-slate-50/80 transition group print:border-b print:border-slate-400"
                         >
                           {/* Row Number (Sticky) */}
-                          <td className="py-2 px-2 border-r border-slate-200 text-slate-600 font-bold sticky left-0 bg-white group-hover:bg-slate-50 z-20 print:static print:border-slate-900">
+                          <td className="py-2 px-2 border-r border-slate-200 text-slate-600 font-bold sticky left-0 bg-white group-hover:bg-slate-50 z-20 print:static print:border-slate-900 w-12 text-center">
                             {rowNumber}
                           </td>
 
-                          {/* Student Name (Sticky) */}
-                          <td className="py-2 px-3 border-r border-slate-200 text-left font-bold text-slate-900 sticky left-10 bg-white group-hover:bg-slate-50 z-20 truncate max-w-[170px] print:static print:border-slate-900">
+                          {/* Student Name (Sticky - 240px wide, 12pt font, NO TRUNCATE so names are not squeezed) */}
+                          <td className="py-2 px-3 border-r border-slate-200 text-left font-bold text-slate-900 sticky left-[48px] bg-white group-hover:bg-slate-50 z-20 min-w-[240px] print:static print:border-slate-900">
                             {onUpdateStudent ? (
                               <input
                                 type="text"
                                 value={student.name}
                                 onChange={(e) => handleStudentInfoChange(student, 'name', e.target.value)}
-                                className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-600 focus:bg-white px-1 py-0.5 rounded text-xs outline-none font-bold"
+                                className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-600 focus:bg-white px-1 py-0.5 rounded text-[12pt] outline-none font-bold text-slate-900 leading-normal"
                               />
                             ) : (
-                              <span>{student.name}</span>
+                              <span className="text-[12pt] font-bold text-slate-900 leading-normal">{student.name}</span>
                             )}
                           </td>
 
                           {/* Age (Sticky) */}
-                          <td className="py-2 px-1 border-r border-slate-200 text-slate-700 font-semibold sticky left-[210px] bg-white group-hover:bg-slate-50 z-20 print:static print:border-slate-900">
+                          <td className="py-2 px-1 border-r border-slate-200 text-slate-700 font-semibold sticky left-[288px] bg-white group-hover:bg-slate-50 z-20 min-w-[65px] print:static print:border-slate-900 text-center">
                             {onUpdateStudent ? (
                               <select
                                 value={student.age || ''}
@@ -1321,7 +1351,7 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                           </td>
 
                           {/* Gender (Sticky) */}
-                          <td className="py-2 px-2 border-r border-slate-200 sticky left-[258px] bg-white group-hover:bg-slate-50 z-20 print:static print:border-slate-900">
+                          <td className="py-2 px-2 border-r border-slate-200 sticky left-[353px] bg-white group-hover:bg-slate-50 z-20 w-14 print:static print:border-slate-900 text-center">
                             {onUpdateStudent ? (
                               <select
                                 value={student.gender || ''}
@@ -1445,12 +1475,12 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                         className="bg-slate-50/40 hover:bg-slate-100/60 transition group print:bg-white print:border-b print:border-slate-300"
                       >
                         {/* Row Index */}
-                        <td className="py-2 px-2 border-r border-slate-200 text-slate-400 font-semibold sticky left-0 bg-white group-hover:bg-slate-100 z-20 print:static print:text-slate-700 print:border-slate-900">
+                        <td className="py-2 px-2 border-r border-slate-200 text-slate-400 font-semibold sticky left-0 bg-white group-hover:bg-slate-100 z-20 print:static print:text-slate-700 print:border-slate-900 w-12 text-center">
                           {rowNumber}
                         </td>
 
                         {/* Name Cell: Interactive inline editor or print blank writing line */}
-                        <td className="py-1.5 px-3 border-r border-slate-200 text-left sticky left-10 bg-white group-hover:bg-slate-100 z-20 print:static print:border-slate-900">
+                        <td className="py-1.5 px-3 border-r border-slate-200 text-left sticky left-[48px] bg-white group-hover:bg-slate-100 z-20 min-w-[240px] print:static print:border-slate-900">
                           {editingRowIndex === rowIndex ? (
                             <div className="flex items-center gap-1.5 py-0.5 print:hidden">
                               <input
@@ -1463,12 +1493,12 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                                   if (e.key === 'Enter') handleSaveInlineStudent(rowIndex);
                                   else if (e.key === 'Escape') setEditingRowIndex(null);
                                 }}
-                                className="px-2 py-1 text-xs border border-emerald-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full"
+                                className="px-2.5 py-1.5 text-[12pt] font-bold border border-emerald-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full text-slate-900"
                               />
                               <select
                                 value={inlineStudentGender}
                                 onChange={(e) => setInlineStudentGender(e.target.value as 'ወ' | 'ሴ' | '')}
-                                className="px-1.5 py-1 text-xs border border-slate-300 rounded-lg bg-white font-bold"
+                                className="px-1.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-bold"
                               >
                                 <option value="ወ">ወንድ (ወ)</option>
                                 <option value="ሴ">ሴት (ሴ)</option>
@@ -1477,10 +1507,10 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleSaveInlineStudent(rowIndex)}
-                                className="bg-emerald-600 hover:bg-emerald-500 text-white p-1 rounded-lg shadow-xs"
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white p-1.5 rounded-lg shadow-xs"
                                 title="አስገባ / መዝግብ"
                               >
-                                <Check className="w-3.5 h-3.5" />
+                                <Check className="w-4 h-4" />
                               </button>
                             </div>
                           ) : (
@@ -1490,10 +1520,10 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                                   setEditingRowIndex(rowIndex);
                                   setInlineStudentName('');
                                 }}
-                                className="cursor-pointer text-slate-400 hover:text-emerald-700 text-xs italic flex items-center gap-1.5 select-none print:hidden"
+                                className="cursor-pointer text-slate-400 hover:text-emerald-700 text-[12pt] font-medium italic flex items-center gap-1.5 select-none print:hidden"
                                 title="ተማሪ ለመመዝገብ ጠቅ ያድርጉ"
                               >
-                                <Plus className="w-3 h-3 text-slate-400" />
+                                <Plus className="w-3.5 h-3.5 text-slate-400" />
                                 <span>መስመር {rowNumber}፦ + ተማሪ ስም ጻፍ</span>
                               </div>
                               {/* Clean dotted line for handwritten printout */}
@@ -1505,12 +1535,12 @@ export const AttendanceTab: React.FC<AttendanceTabProps> = ({
                         </td>
 
                         {/* Age */}
-                        <td className="py-2 px-1 border-r border-slate-200 sticky left-[210px] bg-white group-hover:bg-slate-100 z-20 text-slate-300 print:static print:border-slate-900">
+                        <td className="py-2 px-1 border-r border-slate-200 sticky left-[288px] bg-white group-hover:bg-slate-100 z-20 text-slate-300 min-w-[65px] print:static print:border-slate-900 text-center">
                           -
                         </td>
 
                         {/* Gender */}
-                        <td className="py-2 px-2 border-r border-slate-200 sticky left-[258px] bg-white group-hover:bg-slate-100 z-20 text-slate-300 print:static print:border-slate-900">
+                        <td className="py-2 px-2 border-r border-slate-200 sticky left-[353px] bg-white group-hover:bg-slate-100 z-20 text-slate-300 w-14 print:static print:border-slate-900 text-center">
                           -
                         </td>
 

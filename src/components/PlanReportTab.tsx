@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Plus, Download, Upload, Trash2, Printer, CheckCircle, BarChart3 } from 'lucide-react';
+import { Target, Plus, Download, Upload, Trash2, Printer, CheckCircle, BarChart3, Users } from 'lucide-react';
 import { AnnualPlanItem } from '../types';
 import { downloadCSV, parseCSVLine, readCSVFile } from '../utils/csv';
 
@@ -10,6 +10,8 @@ interface PlanReportTabProps {
   onAddPlan: (plan: Omit<AnnualPlanItem, 'id'>) => void;
   onDeletePlan: (id: number) => void;
   onImportPlans: (plans: AnnualPlanItem[]) => void;
+  onGoToAllStudents?: () => void;
+  totalStudentsCount?: number;
 }
 
 export const PlanReportTab: React.FC<PlanReportTabProps> = ({
@@ -18,7 +20,9 @@ export const PlanReportTab: React.FC<PlanReportTabProps> = ({
   onUpdatePlan,
   onAddPlan,
   onDeletePlan,
-  onImportPlans
+  onImportPlans,
+  onGoToAllStudents,
+  totalStudentsCount
 }) => {
   const [selectedQuarter, setSelectedQuarter] = useState<'q1' | 'q2' | 'q3' | 'q4'>('q1');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -178,6 +182,18 @@ export const PlanReportTab: React.FC<PlanReportTabProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {onGoToAllStudents && (
+              <button
+                type="button"
+                onClick={onGoToAllStudents}
+                className="bg-indigo-900 hover:bg-indigo-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow cursor-pointer border border-indigo-700"
+                title="ሁሉንም የተመዘገቡ ተማሪዎች ማስተር ገጽ ክፈት"
+              >
+                <Users className="w-3.5 h-3.5 text-amber-300" />
+                <span>👥 የተመዘገቡ ተማሪዎች ማስተር ({totalStudentsCount || 0})</span>
+              </button>
+            )}
+
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-blue-800 hover:bg-blue-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm"

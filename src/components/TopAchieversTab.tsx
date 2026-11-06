@@ -139,8 +139,8 @@ export const TopAchieversTab: React.FC<TopAchieversTabProps> = ({
       </div>
 
       {/* Achievers Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden print:border-none print:shadow-none print:overflow-visible">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-center">

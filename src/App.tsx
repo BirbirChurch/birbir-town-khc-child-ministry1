@@ -13,7 +13,8 @@ import {
   Target,
   UserCheck,
   BookMarked,
-  KeyRound
+  KeyRound,
+  Users
 } from 'lucide-react';
 import {
   Role,
@@ -32,6 +33,7 @@ import { generateUniqueId, sanitizeAndDeduplicateAppData } from './utils/idGener
 import { Header } from './components/Header';
 import { LoginPortal } from './components/LoginPortal';
 import { ClassesTab } from './components/ClassesTab';
+import { AllStudentsMasterTab } from './components/AllStudentsMasterTab';
 import { AttendanceTab } from './components/AttendanceTab';
 import { ChoirTab } from './components/ChoirTab';
 import { SpiritualTab } from './components/SpiritualTab';
@@ -327,6 +329,38 @@ export default function App() {
           students: {
             ...prev.students,
             [currentYear]: updatedYearStudents
+          }
+        };
+      },
+      { immediate: true }
+    );
+  };
+
+  const handleMoveStudentClass = (
+    studentId: number | string,
+    sourceClass: string,
+    targetClass: string
+  ) => {
+    if (sourceClass === targetClass) return;
+    updateAppData(
+      (prev) => {
+        const yearStudents = { ...(prev.students?.[currentYear] || {}) };
+        const srcList = yearStudents[sourceClass] || [];
+        const studentToMove = srcList.find((s) => String(s.id) === String(studentId));
+        if (!studentToMove) return prev;
+
+        const newSrcList = srcList.filter((s) => String(s.id) !== String(studentId));
+        const destList = yearStudents[targetClass] || [];
+
+        return {
+          ...prev,
+          students: {
+            ...prev.students,
+            [currentYear]: {
+              ...yearStudents,
+              [sourceClass]: newSrcList,
+              [targetClass]: [...destList, studentToMove]
+            }
           }
         };
       },
@@ -747,6 +781,7 @@ export default function App() {
   // Navigation tab definitions
   const tabs = [
     { id: 'classesTab', label: 'የክፍል ደረጃዎች & ውጤት', icon: GraduationCap, roles: ['admin', 'leader', 'teacher'] },
+    { id: 'allStudentsMasterTab', label: 'ሁሉንም የተመዘገቡ ተማሪዎች', icon: Users, roles: ['admin', 'leader'] },
     { id: 'attendanceTab', label: 'የተማሪዎች አተንዳንስ & መቆጣጠሪያ', icon: CalendarCheck2, roles: ['admin', 'leader', 'teacher'] },
     { id: 'choirTab', label: 'የመዘምራንና ኪነ-ጥበብ ቡድኖች', icon: Music, roles: ['admin', 'leader', 'teacher'] },
     { id: 'spiritualTab', label: 'መንፈሳዊ ትምህርት ቡድኖች', icon: BookOpen, roles: ['admin', 'leader', 'teacher'] },
@@ -862,11 +897,32 @@ export default function App() {
                   onClearClassScores={handleClearClassScores}
                   onSetClassAge={handleSetClassAge}
                   onGoToAttendance={() => setActiveTab('attendanceTab')}
+                  onGoToAllStudents={() => setActiveTab('allStudentsMasterTab')}
                   currentUserRole={currentUserRole}
                   loggedInTeacher={loggedInTeacher}
                   subjects={appData.subjects}
                   classSubjects={appData.classSubjects || {}}
                   onUpdateClassSubjects={handleUpdateClassSubjects}
+                />
+              )}
+
+              {activeTab === 'allStudentsMasterTab' && (currentUserRole === 'admin' || currentUserRole === 'leader') && (
+                <AllStudentsMasterTab
+                  currentYear={currentYear}
+                  classList={CLASS_LIST}
+                  teachers={appData.teachers}
+                  studentsByClass={appData.students?.[currentYear] || {}}
+                  choirMembers={appData.choirMembers || []}
+                  spiritualMembers={appData.spiritualMembers || []}
+                  onUpdateStudent={handleUpdateStudent}
+                  onAddStudentToClass={handleAddStudentToClass}
+                  onDeleteStudent={handleDeleteStudent}
+                  onMoveStudentClass={handleMoveStudentClass}
+                  onGoToClass={(cName) => {
+                    setSelectedClass(cName);
+                    setActiveTab('classesTab');
+                  }}
+                  currentUserRole={currentUserRole}
                 />
               )}
 
@@ -935,6 +991,8 @@ export default function App() {
                   onAddPlan={handleAddPlan}
                   onDeletePlan={handleDeletePlan}
                   onImportPlans={handleImportPlans}
+                  onGoToAllStudents={() => setActiveTab('allStudentsMasterTab')}
+                  totalStudentsCount={countStudentsInData(appData)}
                 />
               )}
 
